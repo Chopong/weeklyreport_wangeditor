@@ -7,3 +7,4 @@ mongo/
 upload/
 wr_prd.sqlite
 *.pyc
+./.DS_store
