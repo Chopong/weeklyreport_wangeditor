@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+
+{% block head_script %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='wangEditor/css/style.css') }}">
+    <style>
+    #editor—wrapper {
+        border: 1px solid #ccc;
+        z-index: 100; /* 按需定义 */
+    }
+    #toolbar-container { border-bottom: 1px solid #ccc; }
+    #editor-container { height: 500px; }
+    </style>
+{% endblock %}
+
+
+{% block page_content %}
+    <div class="alert alert-warning">
+        请注意填写周报的日期
+    </div>
+    <h3>第{{ week_count }}周({{start_at}}至{{end_at}})工作周报</h3>
+    <form class="form form-inline" method="post" role="form">
+        {{ form.csrf_token }}
+        {{ form.hidden_tag() }}
+        {{ wtf.form_errors(form, hiddens="only") }}
+         <h4>上周工作计划</h4>
+        {{ last_content_display|safe }}
+
+        <div id="editor—wrapper">  
+            <div id="toolbar-container">
+                <!-- 工具栏 -->
+            </div>
+            <div style="display: none">
+                {{ form.body(id='formdefault') }}
+            </div>
+            <div id="editor-container">
+                <!-- 编辑器 -->
+            </div>
+        </div>
+
+
+
+        {{ form.last_content }}
+        <hr style="height:10pt; visibility:hidden;" />
+
+        {{ wtf.form_field(form.submit) }}
+    </form>
+{% endblock %}
+
+
+
+{% block script %}
+<script type="text/javascript" src="{{ url_for('static',filename='js/jquery.min.js')}}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='katex/katex.min.js')}}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='wangEditor/js/index.js') }}"></script>
+<script src="https://unpkg.com/@wangeditor/plugin-formula@latest/dist/index.js"></script>
+<script src="https://unpkg.com/@wangeditor/plugin-link-card@latest/dist/index.js"></script>
+<script src="https://unpkg.com/@wangeditor/plugin-upload-attachment@latest/dist/index.js"></script>
+<script src="https://unpkg.com/@wangeditor/plugin-md@latest/dist/index.js"></script>
+<script src="https://unpkg.com/@wangeditor/plugin-ctrl-enter@latest/dist/index.js"></script>
+
+<script type="text/javascript">
+const { createEditor, createToolbar } = window.wangEditor
+
+window.wangEditor.Boot.registerModule(window.WangEditorPluginFormula.default)
+window.wangEditor.Boot.registerModule(window.WangEditorPluginLinkCard.default)
+window.wangEditor.Boot.registerModule(window.WangEditorPluginUploadAttachment.default)
+window.wangEditor.Boot.registerModule(window.WangEditorPluginMD.default)
+window.wangEditor.Boot.registerModule(window.WangEditorPluginCtrlEnter.default)
+
+const editorConfig = {
+    placeholder: 'Type here...',
+    hoverbarKeys: {
+        formula: {
+            menuKeys: ['editFormula'], // “编辑公式”菜单
+        },
+        attachment: {
+            menuKeys: ['downloadAttachment'], // “添加附件”菜单
+        },
+        link: {
+            menuKeys: [
+                'editLink', 'unLink', 'viewLink', // 默认的配置可以通过 `editor.getConfig().hoverbarKeys.link` 获取
+                'convertToLinkCard' // 增加 '转为链接卡片'菜单
+            ],
+        },
+    },
+    onChange(editor) {
+      const html = editor.getHtml()
+      //   console.log('editor content', html)
+      // 也可以同步到 <textarea>
+      document.getElementById('formdefault').textContent = html    
+    },
+    MENU_CONF: {
+        'uploadImage': {
+            server: "{{ url_for('main.upload') }}",
+            fieldName: 'image',
+            
+            // 单个文件的最大体积限制，默认为 2M
+            maxFileSize: 5 * 1024 * 1024, // 1M
+            
+            // 最多可上传几个文件，默认为 100
+            // maxNumberOfFiles: 10,
+
+            // 选择文件时的类型限制，默认为 ['image/*'] 。如不想限制，则设置为 []
+            // allowedFileTypes: ['image/*'],
+
+            // 自定义上传参数，例如传递验证的 token 等。参数会被添加到 formData 中，一起上传到服务端。
+            // meta: {
+            //     token: 'xxx',
+            //     otherKey: 'yyy'
+            // },
+
+            // 将 meta 拼接到 url 参数中，默认 false
+            // metaWithUrl: false,
+
+            // 自定义增加 http  header
+            // headers: {
+            //     Accept: 'text/x-json',
+            //     otherKey: 'xxx'
+            // },
+
+            // 跨域是否传递 cookie ，默认为 false
+            // withCredentials: true,
+
+            // 超时时间，默认为 10 秒
+            // timeout: 5 * 1000, // 5 秒
+
+            onBeforeUpload(file){
+                return file
+            },
+            // customInsert(res, insertFn) {                  // JS 语法
+            // //     // res 即服务端的返回结果
+            // //     // 从 res 中找到 url alt href ，然后插入图片
+            //     console.log(res)
+            //     insertFn(res['data']['url'], res['data']['alt'], res['data']['href'])
+            // },
+            // onProgress(progress) {       // JS 语法
+            //     // progress 是 0-100 的数字
+            //     console.log('progress', progress)
+            // },
+            onSuccess(file, res) {  // JS 语法
+                console.log(`${file.name} 上传成功`, res)
+            },
+            onFailed(file, res) {           // JS 语法
+                console.log(`${file.name} 上传失败`, res)
+            },
+            onError(file, err, res) {// JS 语法
+                console.log(`${file.name} 上传出错`, err, res)
+            },
+        },
+        uploadAttachment: {
+            server: "{{ url_for('main.cpuploadfile') }}" ,
+            fieldName: 'file',
+            onInsertedAttachment(elem) {
+                console.log('inserted attachment ---- ', elem)
+            },
+        },
+    }
+}
+const editor = createEditor({
+    selector: '#editor-container',
+    html: document.getElementById('formdefault').value, //'<p><br></p>',
+    config: editorConfig,
+    mode: 'default', // or 'simple'
+})
+
+const toolbarConfig = {
+    insertKeys: {
+        index: 0,
+        keys: [
+            'insertFormula', // “插入公式”菜单
+            'editFormula', // “编辑公式”菜单
+            'uploadAttachment', //上传附件
+        ],
+    },
+}
+
+const toolbar = createToolbar({
+    editor,
+    selector: '#toolbar-container',
+    config: toolbarConfig,
+    mode: 'default', // or 'simple'
+})
+</script>
+
+
+{% endblock %}
