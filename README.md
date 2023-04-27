@@ -43,7 +43,7 @@ docker run -d \
 
 or docker compose
 
-```shell
+```yaml
 services:
   weekly-db:
     image: postgres:9
